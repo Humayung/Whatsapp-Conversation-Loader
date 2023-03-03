@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">WA Conversation Loader</string>
+    <string name="hi_my_name_is_lisa">Hi! My name is lisa!</string>
+    <string name="lisa">Lisa</string>
+    <string name="_29_10_2022">29/10/2022</string>
+    <string name="_21_02">21:02</string>
+    <string name="_5_november_2022">5 November 2022</string>
+    <string name="this_conversation_is_loaded_from_whatsapp_chat_history">This conversation was loaded from WhatsApp chat history</string>
+    <string name="load_history_file">Load History File</string>
+    <string name="receiver_name">Receiver Name</string>
+</resources>
