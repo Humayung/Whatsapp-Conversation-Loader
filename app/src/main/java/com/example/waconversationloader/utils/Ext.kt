@@ -1,6 +1,9 @@
 package io.skipday.takan.extensions
 
 import android.annotation.SuppressLint
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.content.res.AssetManager
 import android.graphics.Bitmap
@@ -189,6 +192,17 @@ fun Modifier.debugLayer(obj: Any? = null) = then(
         ).copy(alpha = 0.5f)
     )
 )
+
+fun Context.setClipboard(text: String, label: String): Boolean {
+    return try {
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText(label, text)
+        clipboard.setPrimaryClip(clip)
+        true
+    } catch (e: Exception) {
+        false
+    }
+}
 
 @Deprecated(
     message = "Debugging purposes. This modifier adds colored layer for layout debugging purposes",

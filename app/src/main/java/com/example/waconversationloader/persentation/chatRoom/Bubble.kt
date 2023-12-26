@@ -2,8 +2,11 @@ package com.example.waconversationloader.persentation.chatRoom
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +22,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,12 +32,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.waconversationloader.data.model.ChatItem
 import com.example.waconversationloader.persentation.theme.Theme
 import com.example.waconversationloader.utils.generateColorFromHashCode
 import io.skipday.takan.extensions.debugLayer
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Bubble(
     isRight: Boolean,
@@ -41,7 +47,9 @@ fun Bubble(
     dateTime: LocalDateTime?,
     showDate: Boolean,
     sender: String?,
-    showName: Boolean = false
+    showName: Boolean = false,
+    onLongClick: () -> Unit = {},
+    onClick: () -> Unit = {}
 ) {
     Box(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth()) {
@@ -72,6 +80,10 @@ fun Bubble(
                     modifier = Modifier
                         .background(if (isRight) Color(0xffdbf2c7) else Color(0xfffeffff))
                         .clickable { }
+                        .combinedClickable(
+                            onClick = onClick,
+                            onLongClick = onLongClick
+                        )
                         .padding(vertical = 4.dp, horizontal = 8.dp)
                         .widthIn(min = 48.dp)
                 ) {

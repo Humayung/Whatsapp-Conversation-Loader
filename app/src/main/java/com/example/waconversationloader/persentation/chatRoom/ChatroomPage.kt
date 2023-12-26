@@ -45,6 +45,7 @@ import com.example.waconversationloader.eventDispatcher.MainEvent
 import com.example.waconversationloader.persentation.LocalGlobalState
 import com.example.waconversationloader.persentation.LocalMainEventBus
 import com.example.waconversationloader.persentation.nav.LocalNavController
+import io.skipday.takan.extensions.setClipboard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -159,7 +160,11 @@ fun ChatroomPage() {
                             dateTime = item.date,
                             showDate = item.showDate,
                             sender = item.sender,
-                            showName = viewModel.people.size > 2
+                            showName = viewModel.people.size > 2,
+                            onClick = {},
+                            onLongClick = {
+                                context.setClipboard(item.message, "chat")
+                            }
                         )
                     }
                 }
