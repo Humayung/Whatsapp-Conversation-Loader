@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -59,7 +60,7 @@ import com.example.waconversationloader.persentation.theme.Theme
 fun TopBar(
     modifier: Modifier = Modifier,
     name: String = "Name",
-    profileImage: Painter = rememberVectorPainter(image = Icons.Default.Person),
+    profileImage: @Composable BoxScope.() -> Unit,
     onSearchNext: (String) -> Unit = {},
     onSearchPrev: (String) -> Unit = {},
     onClickMenu: () -> Unit = {}
@@ -96,7 +97,7 @@ fun TopBar(
 @Composable
 fun DefaultMode(
     onBack: () -> Unit,
-    profileImage: Painter,
+    profileImage: @Composable BoxScope.() -> Unit,
     onClickSearch: () -> Unit,
     onClickMenu: () -> Unit,
     name: String,
@@ -124,13 +125,12 @@ fun DefaultMode(
                     tint = Color.White
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Image(
+                Box(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
                         .background(Color.White),
-                    painter = profileImage,
-                    contentDescription = "person"
+                    content = profileImage
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
@@ -261,7 +261,8 @@ fun SearchMode(
 fun TopBarPreview() {
     Theme {
         TopBar(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            profileImage = {}
         )
     }
 }

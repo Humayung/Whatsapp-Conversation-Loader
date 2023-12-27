@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -26,11 +27,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
@@ -45,6 +50,8 @@ import com.example.waconversationloader.eventDispatcher.MainEvent
 import com.example.waconversationloader.persentation.LocalGlobalState
 import com.example.waconversationloader.persentation.LocalMainEventBus
 import com.example.waconversationloader.persentation.nav.LocalNavController
+import com.example.waconversationloader.utils.generateColorFromHashCode
+import io.skipday.takan.extensions.contrasted
 import io.skipday.takan.extensions.setClipboard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,7 +82,7 @@ fun ChatroomPage() {
         }
     }
     LaunchedEffect(viewModel.chats) {
-        if(viewModel.chats.isNotEmpty()) {
+        if (viewModel.chats.isNotEmpty()) {
             eventBus.onEvent(MainEvent.ExpandBottomSheet(sheetContent = {
                 SelectMeDialog(viewModel.people.toList(), onItemClick = viewModel::setMe)
             }))
@@ -91,6 +98,7 @@ fun ChatroomPage() {
     Scaffold(
         topBar = {
             TopBar(
+                profileImage = { LetterProfileImage(viewModel.receiverName) },
                 modifier = Modifier.fillMaxWidth(),
                 name = viewModel.receiverName,
                 onSearchPrev = {
@@ -102,7 +110,7 @@ fun ChatroomPage() {
                 onClickMenu = {
                     eventBus.onEvent(MainEvent.ExpandBottomSheet(
                         sheetContent = {
-                            if(viewModel.chats.isNotEmpty()) {
+                            if (viewModel.chats.isNotEmpty()) {
                                 eventBus.onEvent(MainEvent.ExpandBottomSheet(sheetContent = {
                                     SelectMeDialog(
                                         viewModel.people.toList(),
@@ -146,14 +154,14 @@ fun ChatroomPage() {
                     )
             ) else {
                 LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxSize(),
                     state = listState,
                     contentPadding = PaddingValues(vertical = 16.dp)
                 ) {
-                    items(viewModel.chats) { item ->
+                    items(viewModel.chats, key = { it.id }) { item ->
                         Bubble(
                             isRight = item.isSender,
                             text = item.message,
@@ -171,6 +179,30 @@ fun ChatroomPage() {
 
             }
         }
+    }
+}
+
+@Composable
+fun LetterProfileImage(receiverName: String) {
+    val bgColor = generateColorFromHashCode(receiverName)
+    val letter = remember(receiverName) {
+        receiverName
+            .split(" ")
+            .map { it.first().uppercase() }
+            .take(3)
+            .joinToString("")
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bgColor),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = letter,
+            fontSize = with(LocalDensity.current) { 16.dp.toSp() },
+            color = Color.Black.contrasted(bgColor)
+        )
     }
 }
 
