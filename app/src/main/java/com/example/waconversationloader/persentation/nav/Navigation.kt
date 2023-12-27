@@ -29,14 +29,27 @@ fun Navigation() {
         ) {
             composable(
                 route = Scene.ChatList.route,
-                enterTransition = { slideInHorizontally { fullWidth -> -fullWidth } }) {
+                enterTransition = { slideInHorizontally { fullWidth -> -fullWidth } },
+                ) {
                 ChatListPage()
+
             }
             composable(
-                route = Scene.ChatRoom.route,
+                route = Scene.ChatRoom.route + "/{roomId}",
                 enterTransition = { slideInHorizontally { fullWidth -> fullWidth } },
-                popExitTransition = { slideOutHorizontally { fullWidth -> fullWidth }}) {
-                ChatroomPage()
+                popExitTransition = { slideOutHorizontally { fullWidth -> fullWidth } },
+                arguments = listOf(
+                    navArgument("roomId") {
+                        type = NavType.IntType
+                        nullable = false
+                    }
+                )
+            ) { entry ->
+                entry.arguments?.let {
+                    ChatroomPage(it.getInt("roomId"))
+                } ?: run {
+                    navHostController.navigateUp()
+                }
             }
         }
     }

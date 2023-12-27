@@ -1,41 +1,30 @@
 package com.example.waconversationloader.persentation.chatRoom
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.waconversationloader.data.model.ChatItem
 import com.example.waconversationloader.persentation.theme.Theme
 import com.example.waconversationloader.utils.generateColorFromHashCode
-import io.skipday.takan.extensions.debugLayer
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -53,16 +42,16 @@ fun Bubble(
 ) {
     Box(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth()) {
-            if (showDate) dateTime?.let {
+            if (showDate) dateTime?.let { date ->
                 Spacer(modifier = Modifier.height(16.dp))
                 Surface(
                     modifier = Modifier.align(Alignment.CenterHorizontally),
-                    shadowElevation = 1.dp,
+                    shadowElevation = 0.5.dp,
                     shape = RoundedCornerShape(5.dp)
                 ) {
                     Text(
                         fontSize = 12.sp,
-                        text = it.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                        text = date.format(DateTimeFormatter.ofPattern("dd MMMM yyyy")),
                         modifier = Modifier
                             .background(Color.White)
                             .padding(horizontal = 5.dp, vertical = 2.dp)
@@ -110,11 +99,11 @@ fun Bubble(
     }
 }
 
+
 @Preview
 @Composable
 fun BubblePreview() {
     Theme {
-
         Column(Modifier.fillMaxSize()) {
             Bubble(
                 showName = true,
@@ -129,7 +118,7 @@ fun BubblePreview() {
                 showName = true,
                 sender = "John",
                 isRight = true,
-                text = "Hey, good morning! this is a long text with multiple line to demonstrated line wrap. Again, we will demonstrate how lines were wrap using this method",
+                text = "Hey, good morning! this is a long text with multiple line to demonstrated line wrap. Again, we will demonstrate how lines were wrapped using this method",
                 dateTime = LocalDateTime.now(),
                 showDate = false
             )

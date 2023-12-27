@@ -27,6 +27,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -49,6 +50,7 @@ import com.example.waconversationloader.R
 import com.example.waconversationloader.eventDispatcher.MainEvent
 import com.example.waconversationloader.persentation.LocalGlobalState
 import com.example.waconversationloader.persentation.LocalMainEventBus
+import com.example.waconversationloader.persentation.components.LetterProfileImage
 import com.example.waconversationloader.persentation.nav.LocalNavController
 import com.example.waconversationloader.utils.generateColorFromHashCode
 import io.skipday.takan.extensions.contrasted
@@ -56,20 +58,13 @@ import io.skipday.takan.extensions.setClipboard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatroomPage() {
+fun ChatroomPage(roomId: Int) {
     val activity = LocalContext.current as ComponentActivity
     val viewModel by activity.viewModels<ChatRoomViewModel>()
     val context = LocalContext.current
     val eventBus = LocalMainEventBus.current
-    val globalState = LocalGlobalState.current
-    val navController = LocalNavController.current
     LaunchedEffect(Unit) {
-        globalState.selectedFile?.let { uri ->
-            viewModel.loadChats(activity, uri)
-        } ?: kotlin.run {
-            Toast.makeText(context, "File cannot be loaded", Toast.LENGTH_SHORT).show()
-            navController?.navigateUp()
-        }
+        viewModel.loadMessages(roomId)
     }
     val listState = rememberLazyListState()
     LaunchedEffect(viewModel.positionFound, viewModel.searchCount) {
@@ -83,17 +78,10 @@ fun ChatroomPage() {
     }
     LaunchedEffect(viewModel.chats) {
         if (viewModel.chats.isNotEmpty()) {
-            eventBus.onEvent(MainEvent.ExpandBottomSheet(sheetContent = {
-                SelectMeDialog(viewModel.people.toList(), onItemClick = viewModel::setMe)
-            }))
-        }
-
-    }
-    LaunchedEffect(viewModel.chats) {
-        if (viewModel.chats.isNotEmpty()) {
             listState.scrollToItem(viewModel.chats.lastIndex)
         }
     }
+    val loadMessagesState by viewModel.loadMessagesState.collectAsState(initial = ChatRoomViewModel.LoadMessagesState.Loading)
 
     Scaffold(
         topBar = {
@@ -114,7 +102,7 @@ fun ChatroomPage() {
                                 eventBus.onEvent(MainEvent.ExpandBottomSheet(sheetContent = {
                                     SelectMeDialog(
                                         viewModel.people.toList(),
-                                        onItemClick = viewModel::setMe
+                                        onItemClick = { viewModel.setMe(it, roomId) }
                                     )
                                 }))
                             }
@@ -146,7 +134,7 @@ fun ChatroomPage() {
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
-            if (viewModel.chats.isEmpty()) CircularProgressIndicator(
+            if (loadMessagesState == ChatRoomViewModel.LoadMessagesState.Loading) CircularProgressIndicator(
                 modifier = Modifier
                     .size(32.dp)
                     .align(
@@ -182,29 +170,6 @@ fun ChatroomPage() {
     }
 }
 
-@Composable
-fun LetterProfileImage(receiverName: String) {
-    val bgColor = generateColorFromHashCode(receiverName)
-    val letter = remember(receiverName) {
-        receiverName
-            .split(" ")
-            .map { it.first().uppercase() }
-            .take(3)
-            .joinToString("")
-    }
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(bgColor),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = letter,
-            fontSize = with(LocalDensity.current) { 16.dp.toSp() },
-            color = Color.Black.contrasted(bgColor)
-        )
-    }
-}
 
 @Composable
 fun SelectMeDialog(toList: List<String>, onItemClick: (String) -> Unit) {
@@ -245,5 +210,5 @@ fun SelectMeDialog(toList: List<String>, onItemClick: (String) -> Unit) {
 @Preview
 @Composable
 fun ChatroomPagePreview() {
-    ChatroomPage()
+    ChatroomPage(1)
 }

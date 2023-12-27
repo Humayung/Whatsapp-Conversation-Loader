@@ -9,52 +9,124 @@ import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.waconversationloader.data.model.ChatItem
+import com.example.waconversationloader.data.model.MessageModel
+import com.example.waconversationloader.domain.Repository
+import com.example.waconversationloader.domain.Resource
+import com.example.waconversationloader.persentation.chatList.ChatListViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.cancellable
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-class ChatRoomViewModel : ViewModel() {
-    var chats by mutableStateOf(listOf<ChatItem>(), policy = neverEqualPolicy())
+class ChatRoomViewModel : ViewModel(), KoinComponent {
+    var job: Job? = null
+    val repository: Repository by inject()
+    var chats by mutableStateOf(listOf<MessageModel>(), policy = neverEqualPolicy())
     var positionFound by mutableStateOf<Int?>(null)
     var searchCount by mutableStateOf(0)
-    var people: HashSet<String> by mutableStateOf(hashSetOf())
+    var people: List<String> by mutableStateOf(listOf())
     var receiverName by mutableStateOf("Someone")
+    val loadMessagesState: MutableSharedFlow<LoadMessagesState> =
+        MutableSharedFlow()
 
-    fun loadChats(context: Context, fileUri: Uri) {
-        people.clear()
-        chats = listOf()
-        viewModelScope.launch(Dispatchers.IO) {
-            val inputStream = context.contentResolver.openInputStream(fileUri)
-            chats = try {
-                val r = BufferedReader(InputStreamReader(inputStream))
-                var prevDate: LocalDateTime? = null
-                r.readLines().map {
-                    val parsed = parse(it)
-                    parsed.showDate =
-                        prevDate?.toLocalDate()?.equals(parsed.date?.toLocalDate()) == false
-                    prevDate = parsed.date
-                    parsed
+    sealed interface LoadMessagesState {
+        data class Error(val message: String) : LoadMessagesState
+        data object Success : LoadMessagesState
+        data object Loading : LoadMessagesState
+        data object None : LoadMessagesState
+    }
+
+    private fun getPeople(roomId: Int) {
+        viewModelScope.launch {
+            repository.getChatRoom(roomId).collect { res ->
+                when (res) {
+                    is Resource.Error -> Unit
+                    is Resource.Loading -> Unit
+                    is Resource.Success -> {
+                        res.data?.let { chatroom ->
+                            people = chatroom.people
+                            setTitle(chatroom.title, roomId)
+                            updateMe(chatroom.me)
+                        }
+                    }
                 }
-            } catch (e: java.lang.Exception) {
-                listOf()
             }
-            Log.d("TAG", "loadChats: $people")
         }
     }
 
-    fun setMe(me: String) {
+    fun loadMessages(roomId: Int) {
+        job?.cancel()
+        job = viewModelScope.launch {
+            repository.getMessages(roomId, limit = 0, page = 0)
+                .cancellable()
+                .collect { res ->
+                    Log.d("TAG", "loadMessages: $res")
+                    when (res) {
+                        is Resource.Error -> loadMessagesState.emit(
+                            LoadMessagesState.Error(
+                                "Cannot get chatlist, something went wrong"
+                            )
+                        )
+
+                        is Resource.Loading -> loadMessagesState.emit(LoadMessagesState.Loading)
+                        is Resource.Success -> {
+                            loadMessagesState.emit(LoadMessagesState.Success)
+                            Log.d("TAG", "loadMessages: ${res.data}")
+                            chats = res.data ?: listOf()
+                            getPeople(roomId)
+                        }
+                    }
+                }
+        }
+    }
+
+
+    fun setMe(me: String, roomId: Int) {
+        viewModelScope.launch {
+            repository.setChatroomMe(me, roomId).collect {
+                when (it) {
+                    is Resource.Error -> Unit
+                    is Resource.Loading -> Unit
+                    is Resource.Success -> {
+                        updateMe(me)
+                        Log.d("TAG", "setMe: $people")
+                        if (people.size == 2) {
+                            setTitle(people.first { person -> person != me }, roomId)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun setTitle(title: String, roomId: Int) {
+        viewModelScope.launch {
+            repository.setChatroomTitle(title, roomId).collect {
+                when (it) {
+                    is Resource.Error -> Unit
+                    is Resource.Loading -> Unit
+                    is Resource.Success -> {
+                        receiverName = title
+                    }
+                }
+            }
+        }
+    }
+
+    private fun updateMe(me: String) {
         chats = chats.map { chatItem ->
             chatItem.isSender = me == chatItem.sender
             chatItem
-        }
-        receiverName = if (people.size == 2) {
-            people.first { it != me }
-        } else {
-            "Group chat"
         }
     }
 
@@ -62,7 +134,7 @@ class ChatRoomViewModel : ViewModel() {
         if (query.isEmpty()) return
         viewModelScope.launch {
             searchCount++
-            val predicate: (ChatItem) -> Boolean =
+            val predicate: (MessageModel) -> Boolean =
                 { it.message.lowercase().contains(query.lowercase()) }
             val (start, end) = run {
                 if (forward) firstVisible + 1 to chats.lastIndex
@@ -73,39 +145,9 @@ class ChatRoomViewModel : ViewModel() {
             else searchRange.indexOfLast(
                 predicate
             )
-            if (forward && indexFound != -1) positionFound = start + indexFound
-            else positionFound = indexFound
+            positionFound = if (forward && indexFound != -1) start + indexFound
+            else indexFound
         }
     }
 
-
-    private fun parse(line: String): ChatItem {
-        try {
-            val dateEndStr = ", "
-            val dateEnd = line.indexOf(dateEndStr)
-            val date = line.substring(0, dateEnd)
-            val timeEndStr = " - "
-            val timeEnd = line.indexOf(timeEndStr)
-            val time = line.substring(dateEnd + dateEndStr.length, timeEnd)
-            val nameEndStr = ": "
-            val nameEnd = line.indexOf(nameEndStr)
-            val name = line.substring(timeEnd + timeEndStr.length, nameEnd)
-            val text = line.substring(nameEnd + nameEndStr.length)
-            people.add(name)
-            return ChatItem(
-                date = LocalDateTime.parse(
-                    "$date, $time",
-                    DateTimeFormatter.ofPattern("dd/MM/yyyy, HH:mm")
-                ),
-                sender = name,
-                message = text,
-            )
-        } catch (e: java.lang.Exception) {
-            return ChatItem(
-                isSender = true,
-                date = null,
-                message = line,
-            )
-        }
-    }
 }
